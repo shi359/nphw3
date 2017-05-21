@@ -151,11 +151,9 @@ void str_echo(void* arg){
 						 	upload = read(sockfd, buf, MAXLINE);
 						 else
 							upload = read(sockfd,buf,sz);
-						 printf("%s",buf);
             			 		 sz -= upload;
             			 		 upload = fwrite(buf, sizeof(char), upload, fp);
 					}
-					printf("end 1\n");
 					int chunk = total/count;
 					int current = total-chunk;
 					for(i = 1; i < count; i++){
