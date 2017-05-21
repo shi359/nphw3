@@ -41,13 +41,13 @@ void str_echo(void* arg){
 				printf("%s %s login\n", buf, inet_ntoa(l.ip.sin_addr));
 				strcpy(name,buf);
 				user u;
-				int nn,i = 0;
-				char* delim = "\n";
+				int i = 0;
 				strcpy(u.name,buf);
-				strcpy(u.ip,inet_ntoa(l.ip.sin_addr));
+				memcpy(u.ip,inet_ntoa(l.ip.sin_addr),sizeof(u.ip));
 				u.sock = sockfd;
 				//read file list
 				while(1){
+					bzero(&buf,MAXLINE);
 					read(sockfd,buf,MAXLINE);
 					if(strcmp(buf,"end") == 0)
 						break;
@@ -79,6 +79,7 @@ void str_echo(void* arg){
 					}
 				}
 				users[i] = u;
+				memcpy(users[i].ip,u.ip, sizeof(u.ip));
 				num++;
 				pthread_mutex_unlock(&num_lck);
 				printf("%s\n", users[i].file);
@@ -121,6 +122,7 @@ void str_echo(void* arg){
 					int socks[20];
 					int count = 1, i = 0;
 					char* cnt[20];
+					bzero(&ips,sizeof(MAXLINE));
 					pthread_mutex_lock(&num_lck);
 					for(; i < num; i++){
 						if(strstr(users[i].file,file) != NULL){
@@ -136,7 +138,7 @@ void str_echo(void* arg){
 					sprintf(cnt,"%d",count);
 					write(sockfd,cnt,MAXLINE);	
 
-					for(i = 0; i < count; i++)
+					for(i = 1; i < count; i++)
 						write(sockfd,ips[i],strlen(ips[i]));				
 
 					printf("Start receiving...\n");
@@ -145,8 +147,10 @@ void str_echo(void* arg){
 					int upload;
 					int sz = total/count;
 					while(sz > 0){
-						 upload = read(sockfd, buf, MAXLINE);
-						 //printf("%s",buf);
+						if(sz > MAXLINE)
+							upload = read(sockfd, buf, MAXLINE);
+						else
+							upload = read(sockfd,buf,sz);
             			 sz -= upload;
             			 upload = fwrite(buf, sizeof(char), upload, fp);
 					}
@@ -160,8 +164,12 @@ void str_echo(void* arg){
 						else ch = chunk;
 						int rcv;
 						bzero(&buf,MAXLINE);
+						printf("read from %d\n", socks[i]);
 						while(ch > 0){
-							rcv = read(socks[i],buf,MAXLINE);
+							if(ch > MAXLINE)
+								rcv = read(socks[i],buf,MAXLINE);
+							else
+								rcv = read(socks[i],buf,ch);
 							ch -= rcv;
 							fwrite(buf,sizeof(char),rcv,fp);
 						}

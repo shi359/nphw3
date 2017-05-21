@@ -19,7 +19,7 @@ void log_in(){
 	dir = opendir(".");
 	while((d = readdir(dir)) != NULL){
 		if (d->d_type == DT_REG){
-			write(sockfd,d->d_name,MAXLINE);
+			write(sockfd,d->d_name,strlen(d->d_name));
 			char size[20];
 			struct stat st;
 			stat(d->d_name, &st);
@@ -89,6 +89,8 @@ void get_file(void* args){
 	}
 	printf("download complete\n");
 	pthread_detach(pthread_self());
+	pthread_exit(NULL);
+	
 }
 
 void tell(void* args){
@@ -109,9 +111,9 @@ void tell(void* args){
 	sprintf(size,"%d",f.offset);
 	write(sock, size, strlen(size));
 	usleep(1000);
+	printf("upload complete\n");
 	pthread_detach(pthread_self());
 	pthread_exit(NULL);
-
 }
 
 void push_server(int connfd){
@@ -233,8 +235,10 @@ void str_cli(){
 			int count = atoi(buf);
 			char owner[20][MAXLINE];
 			int i = 1;
-			for(; i < count; i++)
+			for(; i < count; i++){
 				read(sockfd,owner[i],MAXLINE);
+				printf("%s\n", owner[i]);
+			}	
 
 			int total = (int)filestat.st_size;
 			int sz = total/count;
@@ -245,7 +249,6 @@ void str_cli(){
 					upload = fread(f,sizeof(char),sz,fp);
 				else
 					upload = fread(f,sizeof(char),MAXLINE,fp);
-				printf("%s\n", f);
 				write(sockfd,f,upload);
 				sz -= upload;
 			}
@@ -268,7 +271,6 @@ void str_cli(){
 				pthread_create(&t,NULL,&tell,&f);
 				//pthread_join(&t,NULL);
 			}
-			printf("wtf\n");
 		}
 
 		else if(strncmp("get",cmd,3)== 0){
@@ -344,10 +346,9 @@ void str_cli(){
 
 				}
 			} else{ // server doesn't have file
-				char size[100] = "";
 				int total;
-				read(sockfd,size,MAXLINE);
-				total = atoi(size);
+				read(sockfd,buf,MAXLINE);
+				total = atoi(buf);
 				printf("total %d\n", total);
 				// get other client's ip
 				char l[20][MAXLINE];

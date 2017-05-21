@@ -1,10 +1,9 @@
-Cli=cli.c
-Ser=ser.c
+Cli=HW3_102062211_Cli.c
+Ser=HW3_102062211_Ser.c
 
 all:
 	gcc -o server $(Ser)
 	gcc -o client $(Cli)
-	./server
 clean:
 	rm -rf share client server
 
