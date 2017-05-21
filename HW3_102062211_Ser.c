@@ -41,9 +41,10 @@ void str_echo(void* arg){
 				printf("%s %s login\n", buf, inet_ntoa(l.ip.sin_addr));
 				strcpy(name,buf);
 				user u;
-				int i = 0;
+				int nn,i = 0;
+				char* delim = "\n";
 				strcpy(u.name,buf);
-				memcpy(u.ip,inet_ntoa(l.ip.sin_addr),sizeof(u.ip));
+				strcpy(u.ip,inet_ntoa(l.ip.sin_addr));
 				u.sock = sockfd;
 				//read file list
 				while(1){
@@ -79,10 +80,9 @@ void str_echo(void* arg){
 					}
 				}
 				users[i] = u;
-				memcpy(users[i].ip,u.ip, sizeof(u.ip));
+				memcpy(users[i].ip,u.ip,sizeof(u.ip));
 				num++;
 				pthread_mutex_unlock(&num_lck);
-				printf("%s\n", users[i].file);
 				first = 0;
 			}	
 			else{ // start command
@@ -122,7 +122,7 @@ void str_echo(void* arg){
 					int socks[20];
 					int count = 1, i = 0;
 					char* cnt[20];
-					bzero(&ips,sizeof(MAXLINE));
+					bzero(&ips,sizeof(ips));
 					pthread_mutex_lock(&num_lck);
 					for(; i < num; i++){
 						if(strstr(users[i].file,file) != NULL){
@@ -138,23 +138,24 @@ void str_echo(void* arg){
 					sprintf(cnt,"%d",count);
 					write(sockfd,cnt,MAXLINE);	
 
-					for(i = 1; i < count; i++)
+					for(i = 1; i < count; i++){
 						write(sockfd,ips[i],strlen(ips[i]));				
-
+					}
 					printf("Start receiving...\n");
 					fflush(stdout);
 					bzero(&buf,MAXLINE);
 					int upload;
 					int sz = total/count;
 					while(sz > 0){
-						if(sz > MAXLINE)
-							upload = read(sockfd, buf, MAXLINE);
-						else
+						 if(sz > MAXLINE)
+						 	upload = read(sockfd, buf, MAXLINE);
+						 else
 							upload = read(sockfd,buf,sz);
-            			 sz -= upload;
-            			 upload = fwrite(buf, sizeof(char), upload, fp);
+						 printf("%s",buf);
+            			 		 sz -= upload;
+            			 		 upload = fwrite(buf, sizeof(char), upload, fp);
 					}
-
+					printf("end 1\n");
 					int chunk = total/count;
 					int current = total-chunk;
 					for(i = 1; i < count; i++){
@@ -162,14 +163,19 @@ void str_echo(void* arg){
 						if(current < chunk || i == count-1)
 							ch = current;
 						else ch = chunk;
+						printf("chunk %d\n",chunk);
 						int rcv;
 						bzero(&buf,MAXLINE);
-						printf("read from %d\n", socks[i]);
+						read(socks[i],buf,MAXLINE);
+						printf("%s\n",buf);
+						printf("start");
 						while(ch > 0){
 							if(ch > MAXLINE)
 								rcv = read(socks[i],buf,MAXLINE);
 							else
 								rcv = read(socks[i],buf,ch);
+							printf("%d\n",rcv);
+							printf("%s",buf);
 							ch -= rcv;
 							fwrite(buf,sizeof(char),rcv,fp);
 						}
@@ -190,11 +196,13 @@ void str_echo(void* arg){
 					pthread_mutex_lock(&num_lck);
 					for(; i < num; i++){
 						if(strstr(users[i].file,file) != NULL){
-							if(users[i].sock != sockfd)
+							if(users[i].sock != sockfd){
 							strcpy(ips[count++],users[i].ip);
-						}
+							printf("%s\n",users[i].ip);
+							} 
+						} 
+					   }
 											
-					}
 					pthread_mutex_unlock(&num_lck);
 					sprintf(n,"%d",count);
 					write(sockfd,n,MAXLINE);
@@ -254,12 +262,14 @@ void str_echo(void* arg){
 							if(strcmp(fileList[j].file,file) == 0){
 								char sz[20] = "";
 								sprintf(sz,"%d",fileList[j].size);
-								write(sockfd,sz,MAXLINE);
+								write(sockfd,sz,strlen(sz));
 								break;
 							}
 						}
+						usleep(5000);
 						for(j = 0; j < count; j++){
-							write(sockfd,ips[j],MAXLINE);
+							printf("write %s\n", ips[j]);
+							write(sockfd,ips[j],strlen(ips[j]));
 						}
 					}	
 					
@@ -310,7 +320,7 @@ int make_connection(){
 	int listenfd = socket(AF_INET, SOCK_STREAM,0);
 	bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(1300);
     int a = 1;
     setsockopt(listenfd,SOL_SOCKET, SO_REUSEADDR,&a,sizeof(a));
