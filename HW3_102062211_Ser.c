@@ -110,11 +110,6 @@ void* str_echo(void* arg){
 					read(sockfd,file,MAXLINE);
 					printf("file %s\n", file);
 					FILE* fp;
-					if((fp = fopen(file,"wb")) == NULL){
-						char warn[] = "open file error";
-						write(sockfd,warn,strlen(warn));
-					}
-
 					read(sockfd,buf,MAXLINE);
 					int total = atoi(buf);
 
@@ -144,11 +139,16 @@ void* str_echo(void* arg){
 					}
 					printf("Start receiving...\n");
 					fflush(stdout);
+					pthread_mutex_lock(&f_lck);
+					if((fp = fopen(file,"wb")) == NULL){
+						char warn[] = "open file error";
+						write(sockfd,warn,strlen(warn));
+					}
+
 					bzero(&buf,MAXLINE);
 					int upload = 0;
 					int sz = total/count;
 					while(sz > 0){
-						 printf("upload %d\n", upload);
 						 if(sz > MAXLINE)
 						 	upload = read(sockfd, buf, MAXLINE);
 						 else
@@ -156,32 +156,37 @@ void* str_echo(void* arg){
             			 		 sz -= upload;
             			 		 upload = fwrite(buf, sizeof(char), upload, fp);
 					}
-					int chunk = total/count;
-					int current = total-chunk;
-					for(i = 1; i < count; i++){
-						int ch;
-						if(current < chunk || i == count-1)
-							ch = current;
-						else ch = chunk;
-						int rcv;
-						bzero(&buf,MAXLINE);
-						printf("listen on %d\n", socks[i]);
-						while(ch > 0){
-							if(ch > MAXLINE)
-								rcv = read(socks[i],buf,MAXLINE);
-							else
-								rcv = read(socks[i],buf,ch);
-							printf("%d\n",rcv);
-							printf("%s",buf);
-							ch -= rcv;
-							fwrite(buf,sizeof(char),rcv,fp);
-						}
-
-					}
-					printf("Upload complete\n");
 
 					fclose(fp);
-
+					pthread_mutex_unlock(&f_lck);
+					printf("Upload complete\n");
+				}
+				else if(strncmp("file",buf,4) == 0){
+				   char file[MAXLINE] = "";
+				   int size , offset = 0;
+				   int upload = 0;
+				   read(sockfd,file,MAXLINE);
+				   bzero(&buf,MAXLINE);
+				   //get size
+				   read(sockfd,buf,MAXLINE);
+				   size = atoi(buf);
+				   read(sockfd,buf,MAXLINE);
+				   offset = atoi(buf);
+				   pthread_mutex_lock(&f_lck);
+				   FILE* fp = fopen(file,"a");
+				   fseek(fp,offset,SEEK_SET);
+				   bzero(&buf,MAXLINE);
+				   while(size > 0){
+				      if(size > MAXLINE)
+					upload = read(sockfd,buf,MAXLINE);
+				      else
+					upload = read(sockfd,buf,size);
+   				        size -= upload;
+					fwrite(buf,sizeof(char),upload,fp);
+				   }
+				   fclose(fp);
+				   pthread_mutex_unlock(&f_lck);
+				   printf("Upload complete");
 				}
 				else if(strncmp("get",buf,3) == 0){
 					char file[MAXLINE];
