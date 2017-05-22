@@ -28,7 +28,7 @@ int has_file(char* file){
 	return 0;
 }
 
-void str_echo(void* arg){
+void* str_echo(void* arg){
 	int n;
 	char buf[MAXLINE] = {};
 	char name[20];
@@ -102,7 +102,7 @@ void str_echo(void* arg){
 					for(;j < users[i].file_num; j++)
 						bzero(&users[i].file[j], strlen(users[i].file));
 					pthread_detach(pthread_self());
-					return;
+					return NULL;
 				}
 				if(strncmp("put",buf,3) == 0){
 					char file[MAXLINE];
@@ -121,7 +121,7 @@ void str_echo(void* arg){
 					char ips[20][MAXLINE];
 					int socks[20];
 					int count = 1, i = 0;
-					char* cnt[20];
+					char cnt[20];
 					bzero(&ips,sizeof(ips));
 					pthread_mutex_lock(&num_lck);
 					for(; i < num; i++){
@@ -309,7 +309,7 @@ void str_echo(void* arg){
 			printf("read error\n");
 		    printf("%s terminated\n", name);
 		    pthread_detach(pthread_self());
-		return;	
+		return NULL;	
 		}
 	}
 }

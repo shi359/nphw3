@@ -1,4 +1,5 @@
 #include "hw3.h"
+#include <dirent.h>
 
 typedef struct sockaddr SA;
 int sockfd;
@@ -89,8 +90,6 @@ void get_file(void* args){
 	}
 	printf("download complete\n");
 	pthread_detach(pthread_self());
-	pthread_exit(NULL);
-	
 }
 
 void tell(void* args){
@@ -111,9 +110,9 @@ void tell(void* args){
 	sprintf(size,"%d",f.offset);
 	write(sock, size, strlen(size));
 	usleep(1000);
-	printf("upload complete\n");
 	pthread_detach(pthread_self());
 	pthread_exit(NULL);
+
 }
 
 void push_server(int connfd){
@@ -237,9 +236,8 @@ void str_cli(){
 			int i = 1;
 			for(; i < count; i++){
 				read(sockfd,owner[i],MAXLINE);
-				printf("%s\n", owner[i]);
-			}	
-
+				printf("owner %s\n", owner[i]);
+			}
 			int total = (int)filestat.st_size;
 			int sz = total/count;
 			int upload = 0;
@@ -249,6 +247,7 @@ void str_cli(){
 					upload = fread(f,sizeof(char),sz,fp);
 				else
 					upload = fread(f,sizeof(char),MAXLINE,fp);
+				printf("%s\n", f);
 				write(sockfd,f,upload);
 				sz -= upload;
 			}
@@ -283,7 +282,6 @@ void str_cli(){
 			int num = atoi(buf);
 
 			read(sockfd,buf,MAXLINE);
-
 			//server has file
 			if(strcmp("yes",buf) == 0){
 				
@@ -346,9 +344,8 @@ void str_cli(){
 
 				}
 			} else{ // server doesn't have file
-				int total;
 				read(sockfd,buf,MAXLINE);
-				total = atoi(buf);
+				int total = atoi(buf);
 				printf("total %d\n", total);
 				// get other client's ip
 				char l[20][MAXLINE];
@@ -356,6 +353,7 @@ void str_cli(){
 				bzero(&buf,MAXLINE);
 				for(; i < num; i++){
 					read(sockfd,buf,MAXLINE);
+					printf("ip %s\n", buf);
 					strcpy(l[i],buf);
 				}
 				int chunk = total/num;
