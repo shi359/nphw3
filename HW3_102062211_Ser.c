@@ -42,7 +42,8 @@ void* str_echo(void* arg){
 				strcpy(name,buf);
 				user u;
 				int nn,i = 0;
-				char* delim = "\n";
+				bzero(&u.name, sizeof(u.name));
+				bzero(&u.file,sizeof(u.file));
 				strcpy(u.name,buf);
 				strcpy(u.ip,inet_ntoa(l.ip.sin_addr));
 				u.sock = sockfd;
@@ -144,9 +145,10 @@ void* str_echo(void* arg){
 					printf("Start receiving...\n");
 					fflush(stdout);
 					bzero(&buf,MAXLINE);
-					int upload;
+					int upload = 0;
 					int sz = total/count;
 					while(sz > 0){
+						 printf("upload %d\n", upload);
 						 if(sz > MAXLINE)
 						 	upload = read(sockfd, buf, MAXLINE);
 						 else
@@ -161,12 +163,9 @@ void* str_echo(void* arg){
 						if(current < chunk || i == count-1)
 							ch = current;
 						else ch = chunk;
-						printf("chunk %d\n",chunk);
 						int rcv;
 						bzero(&buf,MAXLINE);
-						read(socks[i],buf,MAXLINE);
-						printf("%s\n",buf);
-						printf("start");
+						printf("listen on %d\n", socks[i]);
 						while(ch > 0){
 							if(ch > MAXLINE)
 								rcv = read(socks[i],buf,MAXLINE);
@@ -280,10 +279,10 @@ void* str_echo(void* arg){
 					}
 				} else if(strncmp("user",buf,4) == 0){
 					int i = 0, nn;
-					char list[MAXLINE];
+					char list[MAXLINE] = "";
 					pthread_mutex_lock(&num_lck);
 					for(;i < num; i++){
-						char d[2];
+						char d[2] = "";
 						sprintf(d,"%d",i+1);
 						strcat(list,d);
 						strcat(list,". ");
@@ -333,7 +332,7 @@ int main(int argc, char** argv){
 	int listenfd = make_connection();
 	listen(listenfd, LISTENQ);
 	bzero(&users,sizeof(users));
-	
+ 	bzero(&fileList,sizeof(fileList));	
 	while(1){
 		int len = sizeof(client);
 		connfd = accept(listenfd, (SA*)&client,(socklen_t *)&len);

@@ -24,7 +24,7 @@ void log_in(){
 			char size[20];
 			struct stat st;
 			stat(d->d_name, &st);
-			sprintf(size,"%lld",st.st_size);
+			sprintf(size,"%ld",st.st_size);
 			usleep(1000);
 			write(sockfd,size,strlen(size));
 		}
@@ -228,7 +228,7 @@ void* str_cli(){
 			write(sockfd,file,strlen(file));
 			char size[MAXLINE];
 			usleep(1000);
-			sprintf(size,"%lld",filestat.st_size);
+			sprintf(size,"%ld",filestat.st_size);
 			write(sockfd, size,strlen(size));
 			read(sockfd, buf,MAXLINE);
 
