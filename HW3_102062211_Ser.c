@@ -42,7 +42,8 @@ void* str_echo(void* arg){
 				strcpy(name,buf);
 				user u;
 				int nn,i = 0;
-				char* delim = "\n";
+				bzero(&u.name, sizeof(u.name));
+				bzero(&u.file,sizeof(u.file));
 				strcpy(u.name,buf);
 				strcpy(u.ip,inet_ntoa(l.ip.sin_addr));
 				u.sock = sockfd;
@@ -109,11 +110,6 @@ void* str_echo(void* arg){
 					read(sockfd,file,MAXLINE);
 					printf("file %s\n", file);
 					FILE* fp;
-					if((fp = fopen(file,"wb")) == NULL){
-						char warn[] = "open file error";
-						write(sockfd,warn,strlen(warn));
-					}
-
 					read(sockfd,buf,MAXLINE);
 					int total = atoi(buf);
 
@@ -143,8 +139,14 @@ void* str_echo(void* arg){
 					}
 					printf("Start receiving...\n");
 					fflush(stdout);
+					pthread_mutex_lock(&f_lck);
+					if((fp = fopen(file,"wb")) == NULL){
+						char warn[] = "open file error";
+						write(sockfd,warn,strlen(warn));
+					}
+
 					bzero(&buf,MAXLINE);
-					int upload;
+					int upload = 0;
 					int sz = total/count;
 					while(sz > 0){
 						 if(sz > MAXLINE)
@@ -154,35 +156,37 @@ void* str_echo(void* arg){
             			 		 sz -= upload;
             			 		 upload = fwrite(buf, sizeof(char), upload, fp);
 					}
-					int chunk = total/count;
-					int current = total-chunk;
-					for(i = 1; i < count; i++){
-						int ch;
-						if(current < chunk || i == count-1)
-							ch = current;
-						else ch = chunk;
-						printf("chunk %d\n",chunk);
-						int rcv;
-						bzero(&buf,MAXLINE);
-						read(socks[i],buf,MAXLINE);
-						printf("%s\n",buf);
-						printf("start");
-						while(ch > 0){
-							if(ch > MAXLINE)
-								rcv = read(socks[i],buf,MAXLINE);
-							else
-								rcv = read(socks[i],buf,ch);
-							printf("%d\n",rcv);
-							printf("%s",buf);
-							ch -= rcv;
-							fwrite(buf,sizeof(char),rcv,fp);
-						}
-
-					}
-					printf("Upload complete\n");
 
 					fclose(fp);
-
+					pthread_mutex_unlock(&f_lck);
+					printf("Upload complete\n");
+				}
+				else if(strncmp("file",buf,4) == 0){
+				   char file[MAXLINE] = "";
+				   int size , offset = 0;
+				   int upload = 0;
+				   read(sockfd,file,MAXLINE);
+				   bzero(&buf,MAXLINE);
+				   //get size
+				   read(sockfd,buf,MAXLINE);
+				   size = atoi(buf);
+				   read(sockfd,buf,MAXLINE);
+				   offset = atoi(buf);
+				   pthread_mutex_lock(&f_lck);
+				   FILE* fp = fopen(file,"a");
+				   fseek(fp,offset,SEEK_SET);
+				   bzero(&buf,MAXLINE);
+				   while(size > 0){
+				      if(size > MAXLINE)
+					upload = read(sockfd,buf,MAXLINE);
+				      else
+					upload = read(sockfd,buf,size);
+   				        size -= upload;
+					fwrite(buf,sizeof(char),upload,fp);
+				   }
+				   fclose(fp);
+				   pthread_mutex_unlock(&f_lck);
+				   printf("Upload complete");
 				}
 				else if(strncmp("get",buf,3) == 0){
 					char file[MAXLINE];
@@ -280,10 +284,10 @@ void* str_echo(void* arg){
 					}
 				} else if(strncmp("user",buf,4) == 0){
 					int i = 0, nn;
-					char list[MAXLINE];
+					char list[MAXLINE] = "";
 					pthread_mutex_lock(&num_lck);
 					for(;i < num; i++){
-						char d[2];
+						char d[2] = "";
 						sprintf(d,"%d",i+1);
 						strcat(list,d);
 						strcat(list,". ");
@@ -333,7 +337,7 @@ int main(int argc, char** argv){
 	int listenfd = make_connection();
 	listen(listenfd, LISTENQ);
 	bzero(&users,sizeof(users));
-	
+ 	bzero(&fileList,sizeof(fileList));	
 	while(1){
 		int len = sizeof(client);
 		connfd = accept(listenfd, (SA*)&client,(socklen_t *)&len);
