@@ -118,38 +118,50 @@ void* tell(void* args){
 
 void push_server(int connfd){
 	char buf[MAXLINE] = "";
+	char file[MAXLINE] = "";
+	char sz[10] = "";
+	char ofst[10] = "";
 	//get file name
 	read(connfd,buf,MAXLINE);
+	strcpy(file,buf);
 	FILE* fp = fopen(buf,"r");
 	if(fp == NULL){
-		printf("error\n");
+		printf("file null error\n");
 		return;
 	}	
 	usleep(1000);
 	//get file size
 	bzero(&buf,strlen(buf));
 	read(connfd,buf,MAXLINE);
+	strcpy(sz,buf);
 	int size = atoi(buf);
 	usleep(1000);
 	//get offset
 	read(connfd,buf,MAXLINE);
 	int offset = atoi(buf);
+	sprintf(ofst,"%d",offset-1);
 	fseek(fp,offset-1,SEEK_SET);
 	//read file
 	int total = size;
 	int upload;
 	char f[MAXLINE];
-
+	//tell file
+	write(sockfd,"file",5);
+	write(sockfd,file,strlen(file));
+	usleep(1000);
+	//tell size
+	write(sockfd,sz,strlen(sz));
+	write(sockfd,ofst,strlen(ofst));
+	usleep(1000);
 	while(total > 0){
 		if(total > MAXLINE)
 			fread(f,sizeof(char),MAXLINE,fp);
 		else
 			fread(f,sizeof(char),total,fp);
 		if(strlen(f) == 0){
-			printf("error\n");
+			printf(" null error\n");
 			return;
 		}
-
 		upload = write(sockfd,f,strlen(f));
 		total -= upload;
 	}
