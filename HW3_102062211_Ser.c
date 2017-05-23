@@ -97,7 +97,7 @@ void* str_echo(void* arg){
 							break;
 					}
 					num--;
-					pthread_mutex_lock(&num_lck);
+					pthread_mutex_unlock(&num_lck);
 					bzero(users[i].name, strlen(users[i].name));
 					int j = 0;
 					for(;j < users[i].file_num; j++)
@@ -160,12 +160,16 @@ void* str_echo(void* arg){
 					fclose(fp);
 					pthread_mutex_unlock(&f_lck);
 					printf("Upload complete\n");
+				   	bzero(&buf,MAXLINE);
+				   	continue;
 				}
 				else if(strncmp("file",buf,4) == 0){
+				   printf("ready to get file\n");
 				   char file[MAXLINE] = "";
 				   int size , offset = 0;
 				   int upload = 0;
 				   read(sockfd,file,MAXLINE);
+				   printf("read %s\n", file);
 				   bzero(&buf,MAXLINE);
 				   //get size
 				   read(sockfd,buf,MAXLINE);
@@ -186,7 +190,9 @@ void* str_echo(void* arg){
 				   }
 				   fclose(fp);
 				   pthread_mutex_unlock(&f_lck);
-				   printf("Upload complete");
+				   printf("Upload complete\n");
+				   bzero(&buf,MAXLINE);
+				   continue;
 				}
 				else if(strncmp("get",buf,3) == 0){
 					char file[MAXLINE];
@@ -283,6 +289,7 @@ void* str_echo(void* arg){
 						}
 					}
 				} else if(strncmp("user",buf,4) == 0){
+					printf("list user\n");
 					int i = 0, nn;
 					char list[MAXLINE] = "";
 					pthread_mutex_lock(&num_lck);
@@ -306,7 +313,7 @@ void* str_echo(void* arg){
 			 	//write(sockfd,buf,MAXLINE);
 			}
 			fflush(stdout);
-			memset(buf,0,sizeof(buf));
+			bzero(&buf,MAXLINE);
 		}
 		if(n < 0 && errno == EINTR) continue;
 		else if(n < 0){ 
