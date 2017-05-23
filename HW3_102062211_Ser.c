@@ -39,6 +39,7 @@ void* str_echo(void* arg){
 		while((n=read(sockfd,buf,MAXLINE)) > 0){
 			if(first){ //login
 				printf("%s %s login\n", buf, inet_ntoa(l.ip.sin_addr));
+				printf("socket: %d\n", sockfd);
 				strcpy(name,buf);
 				user u;
 				int nn,i = 0;
@@ -164,7 +165,6 @@ void* str_echo(void* arg){
 				   	continue;
 				}
 				else if(strncmp("file",buf,4) == 0){
-				   printf("ready to get file\n");
 				   char file[MAXLINE] = "";
 				   int size , offset = 0;
 				   int upload = 0;
@@ -206,7 +206,6 @@ void* str_echo(void* arg){
 						if(strstr(users[i].file,file) != NULL){
 							if(users[i].sock != sockfd){
 							strcpy(ips[count++],users[i].ip);
-							printf("%s\n",users[i].ip);
 							} 
 						} 
 					   }
@@ -265,19 +264,20 @@ void* str_echo(void* arg){
 					}
 					else{
 						write(sockfd,"no",3);
-						int j = 0;
+						int j = 0,flag = 0;
+						for(j = 0; j < count; j++){
+							printf("write %d %s\n", sockfd,ips[j]);
+							write(sockfd,ips[j],strlen(ips[j]));
+						}
+						usleep(1000);
 						for(; j < fileListSize; j++){
 							if(strcmp(fileList[j].file,file) == 0){
-								char sz[20] = "";
-								sprintf(sz,"%d",fileList[j].size);
-								write(sockfd,sz,strlen(sz));
+								flag = 1;
 								break;
 							}
 						}
-						usleep(5000);
-						for(j = 0; j < count; j++){
-							printf("write %s\n", ips[j]);
-							write(sockfd,ips[j],strlen(ips[j]));
+						if(flag == 1){
+							write(sockfd,&fileList[j].size,sizeof(fileList[j].size));
 						}
 					}	
 					
