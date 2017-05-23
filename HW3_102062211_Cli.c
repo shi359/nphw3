@@ -366,8 +366,8 @@ void* str_cli(){
 					printf("ip %s\n", buf);
 					strcpy(l[i],buf);
 				}
-				read(sockfd,buf,MAXLINE);
 				int total = atoi(buf);
+				read(sockfd,&total,sizeof(int));
 				printf("total %d\n", total);
 				int chunk = total/num;
 				int tmp = chunk;
