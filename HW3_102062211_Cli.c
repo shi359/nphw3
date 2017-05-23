@@ -37,8 +37,7 @@ void log_in(){
 
 int make_connection(char* addr, int port){
 	bzero(&serv, sizeof(serv));
-	int sock;
-	if((sock = socket(AF_INET, SOCK_STREAM,0)) < 0){
+	if((sockfd = socket(AF_INET, SOCK_STREAM,0)) < 0){
 		printf("socket error\n");
 		return -1;
 	}
@@ -49,11 +48,11 @@ int make_connection(char* addr, int port){
 		return -1;
 	}
 		
-	if(connect(sock, (SA *)&serv, sizeof(serv)) < 0){
+	if(connect(sockfd, (SA *)&serv, sizeof(serv)) < 0){
 		printf("connet error\n");
 		return -1;
 	}	
-	return sock;
+	return sockfd;
 }
 
 void* get_file(void* args){
@@ -163,7 +162,6 @@ void push_server(int connfd){
 			printf(" null error\n");
 			return;
 		}
-		printf("write %s\n", f);
 		upload = write(sockfd,f,strlen(f));
 		total -= upload;
 	}
@@ -283,8 +281,8 @@ void* str_cli(){
 				f.offset = offset;
 				offset += f.chunk;
 				pthread_create(&t,NULL,&tell,&f);
+				//pthread_join(&t,NULL);
 			}
-		   continue;
 		}
 
 		else if(strncmp("get",cmd,3)== 0){
@@ -359,9 +357,6 @@ void* str_cli(){
 
 				}
 			} else{ // server doesn't have file
-				read(sockfd,buf,MAXLINE);
-				int total = atoi(buf);
-				printf("total %d\n", total);
 				// get other client's ip
 				char l[20][MAXLINE];
 				int i = 0;
@@ -371,6 +366,9 @@ void* str_cli(){
 					printf("ip %s\n", buf);
 					strcpy(l[i],buf);
 				}
+				read(sockfd,buf,MAXLINE);
+				int total = atoi(buf);
+				printf("total %d\n", total);
 				int chunk = total/num;
 				int tmp = chunk;
 				for(i = 0; i < num; i++){
@@ -395,10 +393,10 @@ void* str_cli(){
 
 		else if(strncmp("user",cmd,4) == 0){
 			printf("list user\n");
-			int k = write(sockfd, cmd,strlen(cmd));
+			write(sockfd, cmd,strlen(cmd));
 			bzero(&buf,strlen(buf));
 			int n = read(sockfd, buf,MAXLINE);
-			printf("%d\n", n);
+			//printf("%d\n", n);
 			printf("%s", buf);
 		}
 
@@ -443,7 +441,7 @@ int main(int argv, char** argc){
 	pthread_t tid; 
 	pthread_create(&tid,NULL,&be_server,NULL);
 	// make connection
-	sockfd = make_connection(argc[1],1300);
+	int sockfd = make_connection(argc[1],1300);
 	if(sockfd == -1) return 0;
 	mkdir("share", S_IRWXU);
 	chdir("share/");
