@@ -37,7 +37,8 @@ void log_in(){
 
 int make_connection(char* addr, int port){
 	bzero(&serv, sizeof(serv));
-	if((sockfd = socket(AF_INET, SOCK_STREAM,0)) < 0){
+	int sock;
+	if((sock = socket(AF_INET, SOCK_STREAM,0)) < 0){
 		printf("socket error\n");
 		return -1;
 	}
@@ -48,11 +49,11 @@ int make_connection(char* addr, int port){
 		return -1;
 	}
 		
-	if(connect(sockfd, (SA *)&serv, sizeof(serv)) < 0){
+	if(connect(sock, (SA *)&serv, sizeof(serv)) < 0){
 		printf("connet error\n");
 		return -1;
 	}	
-	return sockfd;
+	return sock;
 }
 
 void* get_file(void* args){
@@ -64,11 +65,11 @@ void* get_file(void* args){
 		printf("connected\n");
 		char size[10];
 		//tell file
-		write(sockfd,f.file,strlen(f.file));
+		write(sock,f.file,strlen(f.file));
 		usleep(1000);
 		//tell size
 		sprintf(size,"%d",f.chunk);
-		write(sockfd,size,strlen(size));
+		write(sock,size,strlen(size));
 		usleep(1000);
 		// tell offset
 		sprintf(size,"%d",f.offset);
@@ -100,12 +101,12 @@ void* tell(void* args){
 	write(sock,"to_server",MAXLINE);
 	printf("connected\n");
 	//tell file
-	write(sockfd,f.file,strlen(f.file));
+	write(sock,f.file,strlen(f.file));
 	usleep(1000);
 	//tell size
 	char size[10];
 	sprintf(size,"%d",f.chunk);
-	write(sockfd,size,strlen(size));
+	write(sock,size,strlen(size));
 	usleep(1000);
 	// tell offset
 	sprintf(size,"%d",f.offset);
@@ -162,6 +163,7 @@ void push_server(int connfd){
 			printf(" null error\n");
 			return;
 		}
+		printf("write %s\n", f);
 		upload = write(sockfd,f,strlen(f));
 		total -= upload;
 	}
@@ -281,8 +283,8 @@ void* str_cli(){
 				f.offset = offset;
 				offset += f.chunk;
 				pthread_create(&t,NULL,&tell,&f);
-				//pthread_join(&t,NULL);
 			}
+		   continue;
 		}
 
 		else if(strncmp("get",cmd,3)== 0){
@@ -393,10 +395,10 @@ void* str_cli(){
 
 		else if(strncmp("user",cmd,4) == 0){
 			printf("list user\n");
-			write(sockfd, cmd,strlen(cmd));
+			int k = write(sockfd, cmd,strlen(cmd));
 			bzero(&buf,strlen(buf));
 			int n = read(sockfd, buf,MAXLINE);
-			//printf("%d\n", n);
+			printf("%d\n", n);
 			printf("%s", buf);
 		}
 
@@ -441,8 +443,8 @@ int main(int argv, char** argc){
 	pthread_t tid; 
 	pthread_create(&tid,NULL,&be_server,NULL);
 	// make connection
-	int n = make_connection(argc[1],1300);
-	if(n == -1) return 0;
+	sockfd = make_connection(argc[1],1300);
+	if(sockfd == -1) return 0;
 	mkdir("share", S_IRWXU);
 	chdir("share/");
 	char path[1024];
