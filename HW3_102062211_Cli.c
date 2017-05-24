@@ -37,7 +37,8 @@ void log_in(){
 
 int make_connection(char* addr, int port){
 	bzero(&serv, sizeof(serv));
-	if((sockfd = socket(AF_INET, SOCK_STREAM,0)) < 0){
+	int sock = 0;
+	if((sock = socket(AF_INET, SOCK_STREAM,0)) < 0){
 		printf("socket error\n");
 		return -1;
 	}
@@ -48,11 +49,11 @@ int make_connection(char* addr, int port){
 		return -1;
 	}
 		
-	if(connect(sockfd, (SA *)&serv, sizeof(serv)) < 0){
+	if(connect(sock, (SA *)&serv, sizeof(serv)) < 0){
 		printf("connet error\n");
 		return -1;
 	}	
-	return sockfd;
+	return sock;
 }
 
 void* get_file(void* args){
@@ -227,6 +228,7 @@ void* str_cli(){
 
 		if(strncmp("put",cmd,3) == 0){
 			char file[MAXLINE];
+			bzero(&file,MAXLINE);
 			scanf("%s", file);
 			FILE* fp;
 			struct stat filestat;
@@ -362,8 +364,8 @@ void* str_cli(){
 				int i = 0;
 				bzero(&buf,MAXLINE);
 				for(; i < num; i++){
-					read(sockfd,buf,MAXLINE);
-					printf("ip %s\n", buf);
+					int n = read(sockfd,buf,MAXLINE);
+					printf("ip %s\n",buf);
 					strcpy(l[i],buf);
 				}
 				int total = atoi(buf);
@@ -441,7 +443,7 @@ int main(int argv, char** argc){
 	pthread_t tid; 
 	pthread_create(&tid,NULL,&be_server,NULL);
 	// make connection
-	int sockfd = make_connection(argc[1],1300);
+	sockfd = make_connection(argc[1],1300);
 	if(sockfd == -1) return 0;
 	mkdir("share", S_IRWXU);
 	chdir("share/");

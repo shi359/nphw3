@@ -108,6 +108,7 @@ void* str_echo(void* arg){
 				}
 				if(strncmp("put",buf,3) == 0){
 					char file[MAXLINE];
+					bzero(&file,MAXLINE);
 					read(sockfd,file,MAXLINE);
 					printf("file %s\n", file);
 					FILE* fp;
@@ -166,6 +167,7 @@ void* str_echo(void* arg){
 				}
 				else if(strncmp("file",buf,4) == 0){
 				   char file[MAXLINE] = "";
+				   bzero(&file,MAXLINE);
 				   int size , offset = 0;
 				   int upload = 0;
 				   read(sockfd,file,MAXLINE);
