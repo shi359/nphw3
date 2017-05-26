@@ -203,6 +203,7 @@ void* str_echo(void* arg){
 					char ips[20][MAXLINE];
 					int i = 0;
 					int count = 0,size;
+					bzero(&ips,sizeof(ips));
 					pthread_mutex_lock(&num_lck);
 					for(; i < num; i++){
 						if(strstr(users[i].file,file) != NULL){
@@ -222,9 +223,10 @@ void* str_echo(void* arg){
 						char dest[MAXLINE] = "";
 
 						if(count == 0){
-							char filesz[10];
+							char filesz[10] = "";
 							sprintf(filesz,"%d",size);
-							write(sockfd,filesz,MAXLINE);
+							write(sockfd,filesz,strlen(filesz));
+							usleep(1000);
 							//fseek(fp,0,SEEK_SET);
 							while(!feof(fp)){
 								fread(dest,sizeof(char),MAXLINE,fp);
@@ -235,16 +237,21 @@ void* str_echo(void* arg){
 						} else{
 							int total = size/(count+1);
 							int reads = 0;
-							char filesz[10];
+							char filesz[10] = "";
+							//file size
 							sprintf(filesz,"%d",size);
-							write(sockfd,filesz,MAXLINE);
-
+							write(sockfd,filesz,strlen(filesz));
+							usleep(1000);
+							//server chunk
+							bzero(&filesz,strlen(filesz));
 							sprintf(filesz,"%d",total);
-							write(sockfd,filesz,MAXLINE);
+							write(sockfd,filesz,strlen(filesz));
 							fseek(fp,0,SEEK_SET);
+							usleep(1000);
 							if(total < MAXLINE){
 								fread(dest,1,total,fp);
 								write(sockfd,dest,total);
+								printf("write %s\n", dest);
 								fclose(fp);
 							} else{
 								while(total > 0){
@@ -258,7 +265,8 @@ void* str_echo(void* arg){
 							usleep(1000);
 							int j = 0;
 							for(; j < count; j++){
-								write(sockfd,ips[j],MAXLINE);
+								printf("write %s\n", ips[j]);
+								write(sockfd,ips[j],strlen(ips[j]));
 							}
 							continue;
 						}
